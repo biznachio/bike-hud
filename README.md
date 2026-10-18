@@ -1,10 +1,10 @@
 # HUD for Bike
 
-A heads-up display for [Bike 2](https://www.hogbaysoftware.com/bike/). It sits in the inspector and shows what needs attention today: what's overdue, what's due, the week ahead and work that has stalled. Every item is one click from its row.
+A heads-up display for [Bike 2](https://www.hogbaysoftware.com/bike/) tasks. It sits in the inspector and shows what needs attention today, what's overdue, what's due, the week ahead and work that has stalled. Every item is one click from its row.
 
 ![HUD in Bike's inspector](images/screenshot.png)
 
-HUD is a dashboard, not a planner. Bike holds the work. HUD answers one question: what's waiting on me right now?
+HUD is a dashboard, not a planner. Bike holds the work. HUD tells you what's waiting needs your attention.
 
 ## Install
 
