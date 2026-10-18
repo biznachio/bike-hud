@@ -1,0 +1,18 @@
+{
+  "name": "bike-hud",
+  "version": "0.3.3",
+  "description": "HUD extension for Bike",
+  "scripts": {
+    "build": "bike-ext build",
+    "install-ext": "bike-ext build --install"
+  },
+  "author": "James Stewart",
+  "license": "MIT",
+  "devDependencies": {
+    "@bike-outliner/extension-kit": "github:bike-outliner/extension-kit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/biznachio/bike-hud.git"
+  }
+}

@@ -1,0 +1,572 @@
+/*
+ * HUD inspector. Everything is prefixed hud- because inspector items can share a page.
+ *
+ * Built on the same small system as Backlinks and Timeline:
+ *   Tokens   label grays, a hairline, a 6 percent hover fill, accent for
+ *            "you are here," orange for "waiting on you"
+ *   Section  a header (chevron, title, count) over a hairline, then rows
+ *   Row      one line; hover fills it, the title turns accent, and actions
+ *            float over its end on a fade so nothing reflows
+ *   Tag      Timeline's soft count tag; fills solid when on
+ *   Pill     Backlinks' small rounded badge
+ *   Back     Backlinks' gray chip, naming where it returns
+ *   Toast    Backlinks' confirmation, bottom center
+ * Spacing steps: 4, 8, 12, 24.
+ *
+ * Two things are the HUD's own: red lateness heat, and section titles one
+ * step larger than Backlinks' so they read at a glance in a busy inspector.
+ */
+
+.hud {
+  --hud-accent: var(--control-accent, var(--system-blue));
+  --hud-hover: color-mix(in srgb, var(--label) 6%, transparent);
+  --hud-fill: color-mix(in srgb, var(--label) 7%, transparent);
+  --hud-cell: var(--tertiary-system-fill);
+  --hud-line: var(--separator);
+  --hud-wait: var(--system-orange);
+  --hud-late: var(--system-red);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px 2px 8px;
+  font: -apple-system-body;
+  color: var(--label);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.hud button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  cursor: default;
+  text-align: start;
+}
+
+.hud button:focus-visible {
+  outline: 2px solid var(--hud-accent);
+  outline-offset: -2px;
+  border-radius: 5px;
+}
+
+/* MARK: Empty state, Back, toast (Backlinks) */
+
+.hud-tip {
+  background: var(--background);
+  border: 0.5px solid var(--hud-line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: var(--secondary-label);
+}
+
+.hud-tip b {
+  color: var(--label);
+  font-weight: 600;
+}
+
+.hud-nav {
+  display: flex;
+  margin-bottom: -4px;
+}
+
+.hud .hud-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  height: 22px;
+  padding: 0 9px 0 6px;
+  border-radius: 6px;
+  background: var(--hud-fill);
+  color: var(--secondary-label);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.hud .hud-back > span:first-child {
+  flex: none;
+  color: var(--tertiary-label);
+}
+
+.hud .hud-back > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud .hud-back:hover {
+  background: var(--hud-hover);
+  color: var(--label);
+}
+
+.hud-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  background: var(--label);
+  color: var(--background);
+  padding: 5px 10px;
+  border-radius: 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: hud-rise 0.18s ease-out;
+}
+
+@keyframes hud-rise {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* MARK: Band: ring, summary and tags, the week */
+
+.hud-band {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hud-ring {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex: none;
+}
+
+.hud-ring-track,
+.hud-ring-fill {
+  fill: none;
+  stroke-width: 6;
+}
+
+.hud-ring-track {
+  stroke: var(--hud-cell);
+}
+
+.hud-ring-fill {
+  stroke: var(--hud-accent);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.4s ease;
+}
+
+.hud-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-ring-total {
+  color: var(--tertiary-label);
+  font-weight: 500;
+}
+
+.hud-ring--clear .hud-ring-label {
+  color: var(--hud-accent);
+  font-size: 17px;
+}
+
+.hud-ring--clear svg {
+  animation: hud-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes hud-pop {
+  from { transform: scale(0.7); opacity: 0.2; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-ring--clear svg,
+  .hud-toast { animation: none; }
+  .hud-ring-fill { transition: none; }
+}
+
+.hud-band-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hud-band-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.hud-summary {
+  color: var(--secondary-label);
+}
+
+.hud-clear-title {
+  font-weight: 600;
+}
+
+/* Tags: Timeline's soft count tag. */
+.hud .hud-tag {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 4px;
+  line-height: 17px;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--secondary-label);
+  background: var(--hud-fill);
+}
+
+.hud .hud-tag--today {
+  color: var(--hud-accent);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--hud-accent) 14%, transparent);
+}
+
+.hud .hud-tag--today:hover {
+  background: color-mix(in srgb, var(--hud-accent) 22%, transparent);
+}
+
+.hud .hud-tag--late {
+  color: var(--hud-late);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--hud-late) 16%, transparent);
+}
+
+.hud .hud-tag--late:hover {
+  background: color-mix(in srgb, var(--hud-late) 24%, transparent);
+}
+
+.hud .hud-tag--wait {
+  color: var(--label);
+  background: color-mix(in srgb, var(--hud-wait) 22%, transparent);
+}
+
+.hud .hud-tag--wait:hover {
+  background: color-mix(in srgb, var(--hud-wait) 32%, transparent);
+}
+
+.hud .hud-tag--on {
+  color: var(--background);
+  background: var(--hud-wait);
+}
+
+/* The week: Backlinks' activity strip, a cell per day. */
+.hud-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.hud .hud-day {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  border-radius: 4px;
+}
+
+.hud-cell {
+  display: block;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--hud-cell);
+  transition: background-color 0.2s ease;
+}
+
+.hud-on1 { background: color-mix(in srgb, var(--hud-accent) 40%, var(--hud-cell)); }
+.hud-on2 { background: color-mix(in srgb, var(--hud-accent) 70%, var(--hud-cell)); }
+.hud-on3 { background: var(--hud-accent); }
+
+.hud .hud-day:hover .hud-cell {
+  box-shadow: 0 0 0 1.5px var(--hud-hover);
+}
+
+.hud-day-letter {
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.1;
+  color: var(--tertiary-label);
+}
+
+.hud .hud-day:hover .hud-day-letter {
+  color: var(--secondary-label);
+}
+
+/* MARK: Sections (Backlinks) */
+
+.hud-sec {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hud .hud-sech {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0 0 4px;
+  padding-bottom: 4px;
+  border-bottom: 0.5px solid var(--hud-line);
+}
+
+/* Collapsed sections drop the rule, so closed headers read as a list. */
+.hud .hud-sech[aria-expanded='false'] {
+  border-bottom-color: transparent;
+  margin-bottom: 0;
+}
+
+.hud-peek {
+  align-self: center;
+  color: var(--tertiary-label);
+  transition: transform 0.15s ease;
+}
+
+.hud .hud-sech[aria-expanded='true'] .hud-peek {
+  transform: rotate(90deg);
+}
+
+.hud-sech-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label);
+}
+
+.hud-sec-n {
+  color: var(--tertiary-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud .hud-sech:hover .hud-peek {
+  color: var(--secondary-label);
+}
+
+.hud-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+}
+
+.hud .hud-link {
+  color: var(--hud-accent);
+  border-radius: 4px;
+}
+
+.hud .hud-link:hover {
+  text-decoration: underline;
+}
+
+.hud .hud-more {
+  justify-self: start;
+  margin: 2px 0 0 26px;
+}
+
+/* MARK: Rows (Backlinks) */
+
+.hud-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 6px;
+  margin: 0 -6px;
+  border-radius: 7px;
+}
+
+.hud-row:hover,
+.hud-row:has(:focus-visible),
+.hud-row:has(.hud-menu-wrap--open) {
+  background: var(--hud-hover);
+}
+
+.hud .hud-check {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: flex;
+  color: var(--secondary-label);
+}
+
+.hud .hud-check:hover {
+  color: var(--hud-accent);
+}
+
+.hud-row--done .hud-check {
+  color: var(--hud-accent);
+}
+
+.hud-stall-icon {
+  flex: none;
+  color: var(--hud-wait);
+}
+
+.hud-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--hud-cell);
+}
+
+.hud .hud-t {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The whole row opens the row; the check and actions sit above this. */
+.hud .hud-t::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+}
+
+.hud-row:hover .hud-t {
+  color: var(--hud-accent);
+}
+
+.hud-row--done .hud-t,
+.hud-row--done:hover .hud-t {
+  color: var(--tertiary-label);
+  font-weight: 400;
+  text-decoration: line-through;
+}
+
+/* Pills: Backlinks' badge shape. Lateness heat is the HUD's own. */
+.hud-pill {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hud-late--fresh {
+  color: var(--hud-late);
+  background: color-mix(in srgb, var(--hud-late) 14%, transparent);
+}
+
+.hud-late--warm {
+  color: var(--label);
+  background: color-mix(in srgb, var(--hud-late) 40%, transparent);
+}
+
+.hud-late--hot {
+  color: var(--background);
+  background: var(--hud-late);
+}
+
+.hud-pill--wait {
+  font-weight: 500;
+  color: var(--label);
+  background: color-mix(in srgb, var(--hud-wait) 22%, transparent);
+}
+
+/* Hover action: the reschedule button takes the lateness pill's place, in
+   line, so nothing overlaps. Rows are a fixed height, so nothing moves. */
+.hud-acts {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: none;
+}
+
+.hud-row:hover .hud-acts,
+.hud-row:has(:focus-visible) .hud-acts,
+.hud-row:has(.hud-menu-wrap--open) .hud-acts {
+  display: flex;
+}
+
+.hud-row:hover .hud-pill,
+.hud-row:has(:focus-visible) .hud-pill,
+.hud-row:has(.hud-menu-wrap--open) .hud-pill {
+  display: none;
+}
+
+.hud .hud-act {
+  width: 22px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--background);
+  color: var(--secondary-label);
+  box-shadow: 0 0 0 0.5px var(--hud-line);
+}
+
+.hud .hud-act:hover {
+  color: var(--hud-accent);
+}
+
+/* Reschedule menu: drawn in the page, styled like a macOS menu. */
+.hud-menu-wrap {
+  position: relative;
+  display: flex;
+}
+
+.hud-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--background);
+  box-shadow: 0 0 0 0.5px var(--hud-line), 0 6px 18px rgba(0, 0, 0, 0.16);
+}
+
+.hud-menu--above {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.hud .hud-menu button {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.hud .hud-menu button:hover,
+.hud .hud-menu button:focus-visible {
+  background: var(--hud-accent);
+  color: var(--background);
+  outline: none;
+}
+
+.hud-menu-date {
+  color: var(--tertiary-label);
+}
+
+.hud .hud-menu button:hover .hud-menu-date,
+.hud .hud-menu button:focus-visible .hud-menu-date {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.hud-menu-sep {
+  height: 0.5px;
+  margin: 4px 8px;
+  background: var(--hud-line);
+}
